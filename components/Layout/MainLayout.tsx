@@ -22,7 +22,7 @@ interface MainLayoutProps {
 const MainLayout: React.FC<MainLayoutProps> = ({
   children,
   title,
-  description = 'Amplify GenAI',
+  description = 'Holy Family University AI Platform',
   theme = 'dark',
   showLeftSidebar = true,
   showRightSidebar = true,

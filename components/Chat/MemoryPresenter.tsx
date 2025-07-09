@@ -6,7 +6,7 @@ import {
     useState,
 } from 'react';
 
-import HomeContext from '@/pages/api/home/home.context';
+import HomeContext from '@/lib/home/home.context';
 import { getSettings } from '@/utils/app/settings';
 import { useSession } from 'next-auth/react';
 import { doSaveMemoryOp } from '@/services/memoryService';

@@ -1,5 +1,5 @@
 import {useContext, useEffect, useState} from "react";
-import HomeContext from "@/pages/api/home/home.context";
+import HomeContext from "@/lib/home/home.context";
 import { Conversation, Message } from "@/types/chat";
 import cloneDeep from 'lodash/cloneDeep';
 import React from "react";

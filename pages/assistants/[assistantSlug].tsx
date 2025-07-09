@@ -640,7 +640,7 @@ const AssistantPage = ({
               <LoadingIcon />
             </h1>
             <button
-              onClick={() => signIn('cognito')}
+              onClick={() => signIn()}
               id="loginButton"
               className="shadow-md"
               style={{

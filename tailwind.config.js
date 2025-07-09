@@ -8,7 +8,15 @@ module.exports = {
   ],
   darkMode: 'class',
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        'hfu-blue': '#003366',
+        'hfu-gold': '#FFD700',
+        'hfu-light-blue': '#4A90A4',
+        'hfu-gray': '#6B7280',
+        'hfu-dark': '#1F2937',
+      },
+    },
   },
   variants: {
     extend: {

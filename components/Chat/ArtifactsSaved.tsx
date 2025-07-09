@@ -2,7 +2,7 @@ import { IconLibrary,  IconTrash } from '@tabler/icons-react';
 
 import { FC, useContext, useEffect, useRef, useState } from 'react';
 
-import HomeContext from '@/pages/api/home/home.context';
+import HomeContext from '@/lib/home/home.context';
 import { Conversation } from '@/types/chat';
 import { Artifact, ArtifactBlockDetail } from '@/types/artifacts';
 import { deleteArtifact, getArtifact } from '@/services/artifactsService';

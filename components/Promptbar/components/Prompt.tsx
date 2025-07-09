@@ -19,7 +19,7 @@ import {
     useState,
 } from 'react';
 
-import HomeContext from '@/pages/api/home/home.context';
+import HomeContext from '@/lib/home/home.context';
 
 import { Prompt } from '@/types/prompt';
 

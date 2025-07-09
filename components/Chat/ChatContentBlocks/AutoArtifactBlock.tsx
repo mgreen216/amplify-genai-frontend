@@ -1,6 +1,6 @@
 
 import React, {useContext, useEffect, useRef, useState} from "react";
-import HomeContext from "@/pages/api/home/home.context";
+import HomeContext from "@/lib/home/home.context";
 import {Conversation, Message, newMessage} from "@/types/chat";
 import {getSession} from "next-auth/react"
 import {deepMerge} from "@/utils/app/state";

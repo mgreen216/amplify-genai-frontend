@@ -1,6 +1,6 @@
 // src/hooks/useChatService.js
 import { useCallback, useContext, useEffect, useRef } from 'react';
-import HomeContext from '@/pages/api/home/home.context';
+import HomeContext from '@/lib/home/home.context';
 import { killRequest as killReq, MetaHandler } from '../services/chatService';
 import { ChatBody, Conversation, CustomFunction, JsonSchema, Message, newMessage } from "@/types/chat";
 import { ColumnsSpec, } from "@/utils/app/csv";

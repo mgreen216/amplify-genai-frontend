@@ -1,5 +1,5 @@
 import {FC, useContext, ReactElement, useEffect, useRef, useState} from 'react';
-import HomeContext from '@/pages/api/home/home.context';
+import HomeContext from '@/lib/home/home.context';
 import {useTranslation} from 'next-i18next';
 import {Prompt} from '@/types/prompt';
 import {COMMON_DISALLOWED_FILE_EXTENSIONS} from "@/utils/app/const";

@@ -1,5 +1,5 @@
 import { useEffect, useState, useContext, useRef } from "react";
-import HomeContext from "@/pages/api/home/home.context";
+import HomeContext from "@/lib/home/home.context";
 import { useSession } from "next-auth/react";
 import Loader from "@/components/Loader/Loader";
 import cloneDeep from 'lodash/cloneDeep';

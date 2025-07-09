@@ -23,7 +23,7 @@ import {throttle} from '@/utils/data/throttle';
 import {Conversation, DataSource, Message, MessageType, newMessage} from '@/types/chat';
 import {Plugin} from '@/types/plugin';
 
-import HomeContext from '@/pages/api/home/home.context';
+import HomeContext from '@/lib/home/home.context';
 
 import Spinner from '../Spinner';
 import {ChatInput} from './ChatInput';

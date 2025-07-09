@@ -3,7 +3,7 @@ import { IconPlus, IconHomeBolt, IconWorldBolt, IconTools, IconTool } from '@tab
 import AgentToolsSelector from '../Agent/AgentToolsSelector';
 import { ApiItemSelector } from './ApiSelector';
 import APIComponent, { API } from './CustomAPIEditor';
-import HomeContext from '@/pages/api/home/home.context';
+import HomeContext from '@/lib/home/home.context';
 import { PythonFunctionModal } from '../Operations/PythonFunctionModal';
 
 

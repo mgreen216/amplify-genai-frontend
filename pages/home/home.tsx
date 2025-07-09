@@ -52,7 +52,7 @@ import {
     IconLogout,
 } from "@tabler/icons-react";
 
-import { initialState } from './home.state';
+import { initialState } from '@/lib/home/home.state';
 import useEventService from "@/hooks/useEventService";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -72,7 +72,7 @@ import { fetchAllRemoteConversations, fetchRemoteConversation, uploadConversatio
 import {killRequest as killReq} from "@/services/chatService";
 import { DefaultUser } from 'next-auth';
 import { addDateAttribute, getDate, getDateName } from '@/utils/app/date';
-import HomeContext, {  ClickContext, Processor } from './home.context';
+import HomeContext, {  ClickContext, Processor } from '@/lib/home/home.context';
 import { ReservedTags } from '@/types/tags';
 import { noCoaAccount } from '@/types/accounts';
 import { noRateLimit } from '@/types/rateLimit';
@@ -1322,7 +1322,7 @@ const Home = ({
                 return (
                     <main className={`flex h-screen w-screen flex-col text-sm ${lightMode}`}>
                         <div className="flex flex-col items-center justify-center min-h-screen text-center dark:bg-[#444654] bg-white dark:text-white text-black">
-                            <h1 className="text-2xl font-bold dark:text-white">Amplify Data Disclosure Agreement</h1>
+                            <h1 className="text-2xl font-bold dark:text-white">Holy Family University AI Platform Data Disclosure Agreement</h1>
                             {dataDisclosure?.url && <a className="hover:text-blue-500" href={dataDisclosure.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline', marginBottom: '10px' }}>Download the data disclosure agreement</a>}
                             {dataDisclosure && dataDisclosure.html ? (
                                 <div
@@ -1451,8 +1451,8 @@ const Home = ({
                 }}
             >
                 <Head>
-                    <title>Amplify</title>
-                    <meta name="description" content="ChatGPT but better." />
+                    <title>Holy Family University AI Platform</title>
+                    <meta name="description" content="Holy Family University AI Platform - Advanced AI assistance for students and faculty." />
                     <meta
                         name="viewport"
                         content="height=device-height ,width=device-width, initial-scale=1, user-scalable=no"
@@ -1541,7 +1541,7 @@ const Home = ({
 
                         </div>
                         <LoadingDialog open={!!loadingMessage} message={loadingMessage}/>
-                        <LoadingDialog open={loadingAmplify} message={"Setting Up Amplify..."}/>
+                        <LoadingDialog open={loadingAmplify} message={"Setting Up Holy Family AI Platform..."}/>
 
                     </main>
                 )}
@@ -1575,7 +1575,7 @@ const Home = ({
                         <LoadingIcon />
                     </h1>
                     <button
-                        onClick={() => signIn('cognito')}
+                        onClick={() => signIn()}
                         id="loginButton"
                         className="shadow-md"
                         style={{

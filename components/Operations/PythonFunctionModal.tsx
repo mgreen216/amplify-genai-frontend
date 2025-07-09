@@ -31,7 +31,7 @@ import { Model } from "@/types/model";
 
 
 
-import HomeContext from "@/pages/api/home/home.context";
+import HomeContext from "@/lib/home/home.context";
 
 
 

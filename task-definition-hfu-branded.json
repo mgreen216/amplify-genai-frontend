@@ -1,0 +1,50 @@
+{
+  "family": "hfu-hfu-amplify-task",
+  "taskRoleArn": "arn:aws:iam::135808927724:role/ecsTaskExecutionRole",
+  "executionRoleArn": "arn:aws:iam::135808927724:role/ecsTaskExecutionRole",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "1024",
+  "memory": "4096",
+  "containerDefinitions": [
+    {
+      "name": "hfu-amplifyApp",
+      "image": "135808927724.dkr.ecr.us-east-1.amazonaws.com/hfu-hfu-amplify-repo:hfu-branded",
+      "cpu": 1024,
+      "memory": 4096,
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "hostPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "NEXTAUTH_SECRET",
+          "value": "hfu-demo-secret-key-12345"
+        },
+        {
+          "name": "DISABLE_AUTH",
+          "value": "true"
+        },
+        {
+          "name": "NEXTAUTH_URL",
+          "value": "http://44.215.122.5:3000"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "hfu-hfu-amplify-loggroup",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
+EOF < /dev/null

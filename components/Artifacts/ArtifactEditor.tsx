@@ -1,4 +1,4 @@
-import HomeContext from "@/pages/api/home/home.context";
+import HomeContext from "@/lib/home/home.context";
 import { CodeBlockDetails } from "@/utils/app/codeblock";
 import { getSettings } from "@/utils/app/settings";
 import {

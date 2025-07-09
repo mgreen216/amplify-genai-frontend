@@ -2,7 +2,7 @@
 
 
 import { useEffect, useState, useContext, useRef } from "react";
-import HomeContext from "@/pages/api/home/home.context";
+import HomeContext from "@/lib/home/home.context";
 import { IconLibrary, IconX } from "@tabler/icons-react";
 import { Conversation, Message } from "@/types/chat";
 import { Artifact, ArtifactBlockDetail } from "@/types/artifacts";

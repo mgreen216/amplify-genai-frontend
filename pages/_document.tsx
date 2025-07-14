@@ -14,7 +14,6 @@ export default function Document(props: Props) {
       <Head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-title" content="Holy Family AI"></meta>
-        <title>Holy Family University AI Platform</title>
       </Head>
       <body>
         <Main />

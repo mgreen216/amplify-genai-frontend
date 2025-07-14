@@ -1,0 +1,20 @@
+# Quick fix - use existing image and just update the changed files
+FROM 135808927724.dkr.ecr.us-east-1.amazonaws.com/hfu-hfu-amplify-repo:hfu-branded-v2
+
+# Set working directory
+WORKDIR /app
+
+# Copy only the authentication-related files
+COPY --chown=appuser:appgroup pages/api/auth/*.js ./pages/api/auth/
+COPY --chown=appuser:appgroup pages/home/home.tsx ./pages/home/home.tsx
+COPY --chown=appuser:appgroup pages/assistants/*.tsx ./pages/assistants/
+COPY --chown=appuser:appgroup middleware.ts ./middleware.ts
+
+# Switch to appuser
+USER appuser
+
+# Rebuild the application
+RUN npm run build
+
+# Start the application
+CMD ["npm", "start"]

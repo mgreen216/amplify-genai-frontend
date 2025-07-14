@@ -86,6 +86,7 @@ import { getAvailableModels, getFeatureFlags, getPowerPoints, getUserAppConfigs 
 import { DefaultModels, Model } from '@/types/model';
 import { ErrorMessage } from '@/types/error';
 import { fetchEmailSuggestions } from '@/services/emailAutocompleteService';
+import { errorLogger, logModelError, debugLog } from '@/utils/app/errorLogging';
 
 import { WorkspaceLegacyMessage } from '@/components/Workspace/WorkspaceLegacyMessage';
 import { getSharedItems } from '@/services/shareService';
@@ -94,6 +95,8 @@ import { SidebarButton } from '@/components/Sidebar/SidebarButton';
 import { useRouter } from 'next/router';
 import { AdminConfigTypes } from '@/types/admin';
 import { ConversationStorage } from '@/types/conversationStorage';
+import { DebugPanel } from '@/components/Debug/DebugPanel';
+import { ConnectionStatus } from '@/components/Chat/ConnectionStatus';
 
 const LoadingIcon = styled(Icon3dCubeSphere)`
   color: lightgray;
@@ -130,6 +133,7 @@ const Home = ({
     const [hasAcceptedDataDisclosure, sethasAcceptedDataDisclosure] = useState<boolean | null> (null);
 
     const [isMemoryDialogOpen, setIsMemoryDialogOpen] = useState(false);
+    const [isDebugPanelOpen, setIsDebugPanelOpen] = useState(false);
 
     const { data: session, status } = useSession();
     const [user, setUser] = useState<DefaultUser | null>(null);
@@ -140,6 +144,7 @@ const Home = ({
     const contextValue = useHomeReducer({
         initialState: {
             ...initialState,
+            chatEndpoint: chatEndpoint,
             statsService: useEventService(mixPanelToken),
             aiEmailDomain: aiEmailDomain },
     });
@@ -686,23 +691,53 @@ const Home = ({
     useEffect(() => {
 
         const fetchModels = async (hasAdminAccess: boolean) => {      
-            console.log("Fetching Models...");
+            console.log("[fetchModels] Starting model fetch...");
+            const startTime = Date.now();
+            
+            // Default fallback models for offline mode
+            const fallbackModels = [
+                {
+                    id: 'gpt-3.5-turbo',
+                    name: 'GPT-3.5 Turbo (Offline Mode)',
+                    maxLength: 4096,
+                    cost_input: 0.5,
+                    cost_output: 1.5,
+                    vendor: 'openai'
+                }
+            ];
+            
+            let errorDetails = null;
             let message = 'There was a problem retrieving the available models, please contact our support team.';
+            
             try {
+                debugLog('MODELS', 'Fetching available models', { hasAdminAccess });
                 const response = await getAvailableModels();
+                const duration = Date.now() - startTime;
+                console.log(`[fetchModels] Response received in ${duration}ms`);
+                debugLog('MODELS', 'Response received', { duration, success: response.success });
+                
                 if (response.success && response.data) {
                     if (response.data?.models.length === 0) {
-                        if (hasAdminAccess) message = "Click on the gear icon on the left sidebar, select 'Admin Interface', and navigate to the 'Supported Models' tab to enable model availability.";
+                        console.warn('[fetchModels] No models available');
+                        if (hasAdminAccess) {
+                            message = "Click on the gear icon on the left sidebar, select 'Admin Interface', and navigate to the 'Supported Models' tab to enable model availability.";
+                        }
+                        errorDetails = {
+                            type: 'NO_MODELS_CONFIGURED',
+                            hasAdminAccess: hasAdminAccess
+                        };
                     } else {
                         const defaultModel = response.data.default;
                         const models = response.data.models;
+                        console.log(`[fetchModels] Successfully loaded ${models.length} models`);
+                        
                         // for on-load for those who have no saved default, no last conversations with a valid model reference
                         if (selectedConversation && selectedConversation?.model?.id === '') {
                             handleUpdateSelectedConversation({...selectedConversation, model: defaultModel ?? lowestCostModel(models)});
                         }
 
                         if (defaultModel) {
-                            console.log("DefaultModel dispatch: ", defaultModel);
+                            console.log("[fetchModels] Setting default model:", defaultModel.id);
                             dispatch({ field: 'defaultModelId', value: defaultModel.id });
                         }
                         if (response.data.cheapest) dispatch({ field: 'cheapestModelId', value: response.data.cheapest.id });
@@ -712,14 +747,107 @@ const Home = ({
 
                         //save default model 
                         localStorage.setItem('defaultModel', JSON.stringify(defaultModel));
+                        localStorage.setItem('availableModels', JSON.stringify(models));
                         return;
                     }
-                } 
+                } else {
+                    // Response was not successful
+                    errorDetails = response.error || {
+                        type: 'API_ERROR',
+                        message: response.message
+                    };
+                    console.error('[fetchModels] API returned error:', errorDetails);
+                    logModelError('API returned unsuccessful response', { 
+                        response, 
+                        duration, 
+                        errorDetails 
+                    });
+                }
             } catch (e) {
-                console.log("Failed to fetch models: ", e);
-            } 
-            dispatch({ field: 'modelError', value: {code: null, title: "Failed to Retrieve Models",
-                                                    messageLines: [message]} as ErrorMessage});  
+                console.error("[fetchModels] Exception caught:", e);
+                errorDetails = {
+                    type: 'EXCEPTION',
+                    error: e instanceof Error ? e.message : 'Unknown error',
+                    stack: e instanceof Error ? e.stack : undefined
+                };
+                logModelError('Exception during model fetch', {
+                    error: e,
+                    duration: Date.now() - startTime,
+                    errorDetails
+                });
+            }
+            
+            // Check if we can use cached models
+            const cachedModels = localStorage.getItem('availableModels');
+            if (cachedModels) {
+                try {
+                    const models = JSON.parse(cachedModels);
+                    console.log('[fetchModels] Using cached models as fallback');
+                    const modelMap = models.reduce((acc:any, model:any) => ({...acc, [model.id]: model}), {});
+                    dispatch({ field: 'availableModels', value: modelMap});
+                    
+                    // Still show error but with additional context
+                    message = 'Unable to fetch latest models. Using cached models from previous session.';
+                    dispatch({ field: 'modelError', value: {
+                        code: 'MODELS_CACHED',
+                        title: "Using Cached Models",
+                        messageLines: [
+                            message,
+                            'You can continue working, but some models may be outdated.',
+                            'Please check your internet connection and refresh the page.'
+                        ]
+                    } as ErrorMessage});
+                    return;
+                } catch (parseError) {
+                    console.error('[fetchModels] Failed to parse cached models:', parseError);
+                }
+            }
+            
+            // If no cached models, use fallback for offline mode
+            if (errorDetails?.type === 'CONNECTION_ERROR' || errorDetails?.type === 'NETWORK_ERROR') {
+                console.log('[fetchModels] Using fallback models for offline mode');
+                const modelMap = fallbackModels.reduce((acc:any, model:any) => ({...acc, [model.id]: model}), {});
+                dispatch({ field: 'availableModels', value: modelMap});
+                
+                message = 'Unable to connect to server. Working in offline mode with limited models.';
+                dispatch({ field: 'modelError', value: {
+                    code: 'OFFLINE_MODE',
+                    title: "Offline Mode",
+                    messageLines: [
+                        message,
+                        'Only basic models are available.',
+                        'Your conversations will sync when connection is restored.'
+                    ]
+                } as ErrorMessage});
+                return;
+            }
+            
+            // Generate detailed error message based on error type
+            const errorMessages = [message];
+            if (errorDetails) {
+                if (errorDetails.type === 'HTTP_ERROR') {
+                    errorMessages.push(`Server returned status: ${errorDetails.status}`);
+                    if (errorDetails.status === 401) {
+                        errorMessages.push('Your session may have expired. Please refresh the page.');
+                    } else if (errorDetails.status >= 500) {
+                        errorMessages.push('The server is experiencing issues. Please try again later.');
+                    }
+                } else if (errorDetails.type === 'CONNECTION_ERROR') {
+                    errorMessages.push('Please check your internet connection.');
+                } else if (errorDetails.type === 'NO_MODELS_CONFIGURED' && !hasAdminAccess) {
+                    errorMessages.push('No models are currently configured. Please contact your administrator.');
+                }
+                
+                if (errorDetails.requestId) {
+                    errorMessages.push(`Error ID: ${errorDetails.requestId}`);
+                }
+            }
+            
+            dispatch({ field: 'modelError', value: {
+                code: errorDetails?.type || 'UNKNOWN_ERROR',
+                title: "Failed to Retrieve Models",
+                messageLines: errorMessages
+            } as ErrorMessage});
         };
 
         const fetchDataDisclosureDecision = async (featureOn: boolean) => {
@@ -1060,7 +1188,17 @@ const Home = ({
         const handleFeatureDependantOnLoadData = async () => {
             const flags = await fetchFeatureFlags();
             fetchDataDisclosureDecision(flags.dataDisclosure);
-            fetchModels(flags.adminInterface);
+            
+            // Fetch models and handle loading state
+            try {
+                await fetchModels(flags.adminInterface);
+            } catch (e) {
+                console.error("Failed to fetch models:", e);
+            } finally {
+                // Ensure loading is set to false regardless of model fetch result
+                dispatch({ field: 'loading', value: false });
+            }
+            
             if (flags.artifacts) fetchArtifacts(); // fetch artifacts 
 
             //Conversation, prompt, folder dependent calls
@@ -1246,6 +1384,26 @@ const Home = ({
             value: 'post-init',
         });
     }, [initialRender]);
+    
+    // Debug panel keyboard shortcut
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Ctrl/Cmd + Shift + D
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'D') {
+                e.preventDefault();
+                setIsDebugPanelOpen(!isDebugPanelOpen);
+            }
+        };
+        
+        // Check URL parameter for debug mode
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('debug') === 'true') {
+            setIsDebugPanelOpen(true);
+        }
+        
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isDebugPanelOpen]);
 
     const [preProcessingCallbacks, setPreProcessingCallbacks] = useState([]);
     const [postProcessingCallbacks, setPostProcessingCallbacks] = useState([]);
@@ -1542,6 +1700,15 @@ const Home = ({
                         </div>
                         <LoadingDialog open={!!loadingMessage} message={loadingMessage}/>
                         <LoadingDialog open={loadingAmplify} message={"Setting Up Holy Family AI Platform..."}/>
+                        
+                        {/* Debug Panel */}
+                        <DebugPanel 
+                            isOpen={isDebugPanelOpen} 
+                            onClose={() => setIsDebugPanelOpen(false)} 
+                        />
+                        
+                        {/* Connection Status */}
+                        <ConnectionStatus />
 
                     </main>
                 )}
@@ -1602,7 +1769,8 @@ export default Home;
 
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
 
-    const chatEndpoint = process.env.CHAT_ENDPOINT;
+    // Use NEXT_PUBLIC_ prefixed variable for client-side access
+    const chatEndpoint = process.env.NEXT_PUBLIC_CHAT_ENDPOINT || process.env.CHAT_ENDPOINT;
     const mixPanelToken = process.env.MIXPANEL_TOKEN;
     const cognitoClientId = process.env.COGNITO_CLIENT_ID;
     const cognitoDomain = process.env.COGNITO_DOMAIN;

@@ -1,0 +1,89 @@
+{
+  "family": "hfu-ai-platform-optimized",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "executionRoleArn": "arn:aws:iam::135808927724:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::135808927724:role/ecsTaskRole",
+  "containerDefinitions": [
+    {
+      "name": "hfu-ai-platform-container",
+      "image": "135808927724.dkr.ecr.us-east-1.amazonaws.com/hfu-hfu-amplify-repo:hfu-branded-v3-fixed",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "name": "NEXT_TELEMETRY_DISABLED",
+          "value": "1"
+        },
+        {
+          "name": "PORT",
+          "value": "3000"
+        },
+        {
+          "name": "HOSTNAME",
+          "value": "0.0.0.0"
+        },
+        {
+          "name": "NEXTAUTH_URL",
+          "value": "https://your-domain.com"
+        },
+        {
+          "name": "DISABLE_AUTH",
+          "value": "false"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "NEXTAUTH_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:135808927724:secret:hfu-ai-platform/nextauth-secret"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/hfu-ai-platform",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:3000/api/auth/session || exit 1"
+        ],
+        "interval": 30,
+        "timeout": 10,
+        "retries": 3,
+        "startPeriod": 30
+      },
+      "user": "1001:1001",
+      "readonlyRootFilesystem": false,
+      "tmpfs": [
+        {
+          "containerPath": "/tmp",
+          "size": 100,
+          "mountOptions": ["noexec", "nosuid", "nodev"]
+        }
+      ],
+      "ulimits": [
+        {
+          "name": "nofile",
+          "softLimit": 65536,
+          "hardLimit": 65536
+        }
+      ],
+      "stopTimeout": 30
+    }
+  ]
+}

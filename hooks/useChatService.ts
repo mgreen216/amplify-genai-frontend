@@ -152,8 +152,9 @@ export function useChatService() {
         const targetEndpoint = chatBody.endpoint || chatEndpoint;
 
         response = getSession().then((session) => {
-            // @ts-ignore
-            return sendChatRequestWithDocuments(targetEndpoint, session.accessToken, chatBody, abortSignal, metaHandler);
+            // @ts-ignore - When auth is disabled, accessToken might be undefined
+            const accessToken = session?.accessToken || '';
+            return sendChatRequestWithDocuments(targetEndpoint, accessToken, chatBody, abortSignal, metaHandler);
         }).catch((e) => {
             if(chatBody.assistantId){
                 alert("The assistant you sent the message to is currently unavailable. Please try again in a minute.");

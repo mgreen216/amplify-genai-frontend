@@ -4,6 +4,13 @@ const { i18n } = require('./next-i18next.config');
 const nextConfig = {
   i18n,
   reactStrictMode: true,
+  
+  // Production optimizations
+  compress: true,
+  poweredByHeader: false,
+  
+  // Output configuration for better container deployment
+  output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
  
   webpack(config, { isServer, dev }) {
     config.experiments = {

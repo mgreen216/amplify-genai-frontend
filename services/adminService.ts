@@ -64,7 +64,25 @@ export const getAvailableModels = async () => {
         path: "/available_models",
         op: "",
     };
-    return await doRequestOp(op);
+    
+    console.log('[getAvailableModels] Fetching available models...');
+    const result = await doRequestOp(op);
+    
+    if (result.success) {
+        console.log('[getAvailableModels] Successfully retrieved models:', {
+            count: result.data?.models?.length || 0,
+            hasDefault: !!result.data?.default,
+            hasCheapest: !!result.data?.cheapest,
+            hasAdvanced: !!result.data?.advanced
+        });
+    } else {
+        console.error('[getAvailableModels] Failed to retrieve models:', {
+            message: result.message,
+            error: result.error
+        });
+    }
+    
+    return result;
 }
 
 export const terminateEmbedding = async (key: any) => {

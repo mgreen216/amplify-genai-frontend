@@ -1,0 +1,81 @@
+# ========================================
+# HOLY FAMILY UNIVERSITY AI PLATFORM
+# OPTIMIZED DOCKERFILE FOR ECS FARGATE
+# ========================================
+
+# ---- Base Node ----
+FROM --platform=linux/amd64 node:lts-alpine3.20 AS base
+
+# Install security updates and create app user
+RUN apk update && apk upgrade && \
+    addgroup -S appgroup && adduser -S appuser -G appgroup
+
+WORKDIR /app
+RUN chown -R appuser:appgroup /app
+
+# ---- Dependencies ----
+FROM base AS dependencies
+USER appuser
+
+# Copy package files and install production dependencies only
+COPY --chown=appuser:appgroup package*.json ./
+RUN npm ci --only=production --frozen-lockfile && npm cache clean --force
+
+# ---- Build Dependencies ----
+FROM base AS build-deps  
+USER appuser
+
+# Copy package files and install all dependencies for building
+COPY --chown=appuser:appgroup package*.json ./
+RUN npm ci --frozen-lockfile
+
+# ---- Build ----
+FROM build-deps AS build
+USER appuser
+
+# Copy source code and build the application
+COPY --chown=appuser:appgroup . .
+RUN npm run build
+
+# ---- Production (Optimized with Standalone) ----
+FROM --platform=linux/amd64 node:lts-alpine3.20 AS production
+
+# Install security updates, create user, and add wget for health checks
+RUN apk update && apk upgrade && \
+    apk add --no-cache wget && \
+    addgroup -S appgroup && adduser -S appuser -G appgroup && \
+    rm -rf /var/cache/apk/*
+
+WORKDIR /app
+
+# Copy the standalone build output from Next.js
+COPY --from=build --chown=appuser:appgroup /app/.next/standalone ./
+COPY --from=build --chown=appuser:appgroup /app/.next/static ./.next/static
+COPY --from=build --chown=appuser:appgroup /app/public ./public
+
+# Set the non-root user
+USER appuser
+
+# Environment variables for production optimization
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+# Required environment variables for HFU AI Platform
+ENV NEXTAUTH_URL=${NEXTAUTH_URL}
+ENV NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+ENV DISABLE_AUTH=${DISABLE_AUTH}
+
+# Create writable temp directory
+VOLUME /tmp
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/auth/session || exit 1
+
+# Start the standalone Next.js server
+CMD ["node", "server.js"]

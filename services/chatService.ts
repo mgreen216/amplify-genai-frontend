@@ -15,7 +15,7 @@ export async function killRequest(endpoint: string, accessToken: string, request
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + accessToken,
+            ...(accessToken && { 'Authorization': 'Bearer ' + accessToken }),
         },
         body:JSON.stringify({killSwitch:{requestId, value:true}}),
     });
@@ -67,11 +67,29 @@ export async function sendChatRequestWithDocuments(endpoint: string, accessToken
 
     const body = JSON.stringify(requestBody);
 
-    const res = await fetch(endpoint, {
+    // Check if endpoint is defined
+    if (!endpoint) {
+        throw new Error('Chat endpoint is not configured. Please check your environment configuration.');
+    }
+    
+    // Ensure the endpoint is properly formatted
+    // If it's a relative path starting with '/', it will be resolved against the current origin
+    // If it's missing the protocol/host, prepend the current origin
+    let url = endpoint;
+    if (!endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
+        // For client-side requests, ensure we have a proper URL
+        if (typeof window !== 'undefined' && endpoint.startsWith('/')) {
+            url = window.location.origin + endpoint;
+        }
+    }
+    
+    console.log('Chat request URL:', url); // Debug logging
+    
+    const res = await fetch(url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + accessToken,
+            ...(accessToken && { 'Authorization': 'Bearer ' + accessToken }),
         },
         signal: abortSignal,
         body,
@@ -215,6 +233,9 @@ export async function sendChatRequestWithDocuments(endpoint: string, accessToken
                             }
 
                             lastSource = json.s;
+                        } else if (json.choices) {
+                            // Handle standard OpenAI format (for mock mode and OpenAI-compatible APIs)
+                            // Data is already in the correct format, no transformation needed
                         } else {
                             return;
                         }
@@ -233,14 +254,18 @@ export async function sendChatRequestWithDocuments(endpoint: string, accessToken
                             }
 
                             const text = json.choices[0].delta.content;
-                            const queue = encoder.encode(text);
-                            controller.enqueue(queue);
+                            if (text) {
+                                const queue = encoder.encode(text);
+                                controller.enqueue(queue);
+                            }
                         }
                     } catch (e) {
                         // Apparent edge case required for Azure
                         if (data === "[DONE]") {
+                            console.log("Chat stream completed");
                             return;
                         } else {
+                            console.error("Error parsing chat response:", e, "Data:", data);
                             controller.error(e);
                         }
                     }

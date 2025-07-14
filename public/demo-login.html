@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holy Family University AI Platform - Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        .login-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 1.5rem;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 1rem;
+            color: #b87333;
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #b87333;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #a05e2c;
+        }
+        .info {
+            text-align: center;
+            margin-top: 1rem;
+            color: #666;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">HFU</div>
+        <h1>Holy Family University<br>AI Platform</h1>
+        <form onsubmit="return handleLogin(event)">
+            <input type="email" id="email" placeholder="your-email@holyfamily.edu" required>
+            <input type="password" id="password" placeholder="Password" value="demo">
+            <button type="submit">Login</button>
+        </form>
+        <div class="info">
+            For demo access, use any @holyfamily.edu email address
+        </div>
+    </div>
+
+    <script>
+        function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('email').value;
+            
+            if (email.endsWith('@holyfamily.edu')) {
+                // Set a simple session cookie
+                document.cookie = "demo-user=" + email.split('@')[0] + "; path=/";
+                document.cookie = "demo-auth=true; path=/";
+                
+                // Redirect to the main application
+                window.location.href = '/';
+            } else {
+                alert('Please use a @holyfamily.edu email address');
+            }
+            
+            return false;
+        }
+    </script>
+</body>
+</html>

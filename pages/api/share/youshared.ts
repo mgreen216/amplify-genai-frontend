@@ -7,7 +7,7 @@ import {authOptions} from "@/pages/api/auth/[...nextauth]";
 export const getYouShared =
     async (req: NextApiRequest, res: NextApiResponse) => {
 
-        const session = await getServerSession(req, res, authOptions);
+        const session = await getServerSession(req, res, authOptions(req) as any);
 
         if (!session) {
             return res.status(401).json({ error: 'Unauthorized' });

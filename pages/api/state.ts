@@ -13,7 +13,7 @@ export const config = {
 const saveState =
     async (req: NextApiRequest, res: NextApiResponse) => {
 
-        const session = await getServerSession(req, res, authOptions);
+        const session = await getServerSession(req, res, authOptions(req) as any);
 
         if (!session) {
             // Unauthorized access, no session found
@@ -52,7 +52,7 @@ const saveState =
 export const getState =
     async (req: NextApiRequest, res: NextApiResponse) => {
 
-        const session = await getServerSession(req, res, authOptions);
+        const session = await getServerSession(req, res, authOptions(req) as any);
 
         if (!session) {
             // Unauthorized access, no session found

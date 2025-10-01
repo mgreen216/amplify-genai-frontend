@@ -6,7 +6,7 @@ import {authOptions} from "@/pages/api/auth/[...nextauth]";
 export const deleteItem =
     async (req: NextApiRequest, res: NextApiResponse) => {
 
-        const session = await getServerSession(req, res, authOptions);
+        const session = await getServerSession(req, res, authOptions(req) as any);
 
         if (!session) {
             // Unauthorized access, no session found

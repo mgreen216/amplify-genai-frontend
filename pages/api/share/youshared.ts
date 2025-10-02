@@ -7,13 +7,13 @@ import {authOptions} from "@/pages/api/auth/[...nextauth]";
 export const getYouShared =
     async (req: NextApiRequest, res: NextApiResponse) => {
 
-        const session = await getServerSession(req, res, authOptions(req) as any);
+        const session = await getServerSession(req, res, authOptions as any);
 
         if (!session) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
-        const { accessToken } = session;
+        const accessToken = (session as any).accessToken || (session as any).token?.accessToken || "";
 
         const apiUrl = process.env.API_BASE_URL + "/state/shared" || ""; 
 

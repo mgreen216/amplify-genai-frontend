@@ -145,7 +145,7 @@ const requestOp =
         }
         
         // @ts-ignore
-        const { accessToken } = session;
+        const accessToken = (session as any).accessToken || (session as any).token?.accessToken || "";
 
         let reqPayload: reqPayload = {
             method: method,

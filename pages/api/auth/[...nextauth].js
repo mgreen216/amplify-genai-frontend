@@ -66,12 +66,26 @@ async function refreshAccessToken(token) {
 }
 
 export const authOptions = {
-    debug: true,
+    // Gate verbose logs behind an env var (was unconditionally `true`).
+    // Set NEXTAUTH_DEBUG=true in ECS task env to enable during incident investigation.
+    debug: process.env.NEXTAUTH_DEBUG === 'true',
+
+    // Session lifetime for the NextAuth-encrypted cookie (independent of
+    // Cognito access-token expiry — refresh is handled in the jwt callback).
+    // 8 hours ≈ one workday; balances UX (no mid-day re-login) with security
+    // (compromised device can't access an idle session indefinitely).
+    session: {
+        maxAge: 8 * 60 * 60,
+    },
+
     providers: [
         CognitoProvider({
             clientId: process.env.COGNITO_CLIENT_ID,
             clientSecret: process.env.COGNITO_CLIENT_SECRET,
             issuer: process.env.COGNITO_ISSUER,
+            // OAuth nonce check mitigates authorization-response replay attacks.
+            // Cognito supports this; do not remove without a specific reason.
+            checks: 'nonce',
         })
     ],
     pages: {

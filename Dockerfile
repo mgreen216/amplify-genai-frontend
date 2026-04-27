@@ -10,8 +10,10 @@ RUN apt-get update && apt-get upgrade -y && \
 # ---- Dependencies ----
 FROM base AS dependencies
 
-# Install dependencies as root first
-RUN npm ci
+# Install dependencies as root first.
+# --legacy-peer-deps tolerates the react-vega@8 / vega-embed@7 peer mismatch
+# that npm 7+ enforces strictly. Same flag we use for local lockfile regen.
+RUN npm ci --legacy-peer-deps
 
 # ---- Build ----
 FROM dependencies AS build

@@ -1,11 +1,39 @@
 // Canvas LMS Integration Service
 // Connects directly to the LLM Router Canvas API
 
+import { getSession } from 'next-auth/react';
+
 const CANVAS_API_BASE = process.env.NEXT_PUBLIC_CANVAS_API_URL || '';
 const CANVAS_TOKEN_KEY = 'canvas_access_token';
 const CANVAS_REFRESH_TOKEN_KEY = 'canvas_refresh_token';
 const CANVAS_USER_KEY = 'canvas_user';
 const CANVAS_EXPIRES_KEY = 'canvas_expires_at';
+
+/**
+ * Build Authorization header for canvas-integrator API Gateway.
+ *
+ * The canvas-integrator's API Gateway is fronted by a Cognito authorizer —
+ * every request must carry the user's Cognito JWT (the same token NextAuth
+ * stores on the session, used by every other authenticated API call in this
+ * app). Earlier versions of this file used `localStorage['canvas_access_token']`,
+ * which is a *Canvas* OAuth token (only set after a successful Canvas connect)
+ * — sending it caused 401s on the very first /oauth/initiate request because
+ * (a) the token was empty, and (b) even if it weren't, Cognito wouldn't
+ * recognize it. See "Failed to connect to Canvas" debugging notes in the
+ * launch-readiness session.
+ */
+async function getCognitoAuthHeaders(): Promise<Record<string, string>> {
+  const session = await getSession();
+  // @ts-ignore - accessToken added in pages/api/auth/[...nextauth].js
+  const cognitoJwt = session?.accessToken as string | undefined;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (cognitoJwt) {
+    headers['Authorization'] = `Bearer ${cognitoJwt}`;
+  }
+  return headers;
+}
 
 export interface CanvasStatus {
   connected: boolean;
@@ -119,18 +147,14 @@ export const canvasService = {
 
   // Check Canvas connection status via backend
   async getStatus(): Promise<CanvasStatus> {
-    const token = getStoredToken();
-    if (!token) {
+    if (!CANVAS_API_BASE) {
       return { connected: false };
     }
 
     try {
       const response = await fetch(`${CANVAS_API_BASE}/api/canvas/status`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        headers: await getCognitoAuthHeaders(),
       });
 
       if (!response.ok) {
@@ -166,17 +190,9 @@ export const canvasService = {
   // Initiate OAuth flow - returns URL to redirect to
   async initiateOAuth(): Promise<CanvasOAuthResponse> {
     try {
-      const token = getStoredToken();
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json'
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
       const response = await fetch(`${CANVAS_API_BASE}/api/canvas/oauth/initiate`, {
         method: 'POST',
-        headers
+        headers: await getCognitoAuthHeaders(),
       });
 
       if (!response.ok) {
@@ -227,15 +243,11 @@ export const canvasService = {
 
   // Disconnect Canvas - revoke on backend and clear stored tokens
   async disconnect(): Promise<boolean> {
-    const token = getStoredToken();
-    if (token) {
+    if (CANVAS_API_BASE) {
       try {
         await fetch(`${CANVAS_API_BASE}/api/canvas/disconnect`, {
           method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+          headers: await getCognitoAuthHeaders(),
         });
       } catch (error) {
         console.error('Error revoking Canvas token on backend:', error);
@@ -245,19 +257,18 @@ export const canvasService = {
     return true;
   },
 
-  // Make authenticated request to Canvas API through our Lambda
+  // Make authenticated request to Canvas API through our Lambda.
+  // The Lambda looks up the user's stored Canvas token (DynamoDB) using
+  // the Cognito JWT in the Authorization header, so we never send the
+  // Canvas token directly from the browser.
   async canvasApiRequest(endpoint: string): Promise<any> {
-    const token = getStoredToken();
-    if (!token) {
-      throw new Error('Not connected to Canvas');
+    if (!CANVAS_API_BASE) {
+      throw new Error('Canvas integration not configured');
     }
 
     const response = await fetch(`${CANVAS_API_BASE}/api/canvas/${endpoint}`, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+      headers: await getCognitoAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -273,18 +284,14 @@ export const canvasService = {
 
   // Get user's Canvas context for chat
   async getContextForChat(): Promise<string> {
-    const token = getStoredToken();
-    if (!token) {
+    if (!CANVAS_API_BASE) {
       return '';
     }
 
     try {
       const response = await fetch(`${CANVAS_API_BASE}/api/canvas/context`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        headers: await getCognitoAuthHeaders(),
       });
 
       if (!response.ok) {

@@ -55,6 +55,14 @@ const nextConfig = {
 
   // Security headers
   async headers() {
+    // Pull the canvas-integrator origin from the build-time env var so the
+    // CSP allowlist stays in sync with whatever NEXT_PUBLIC_CANVAS_API_URL
+    // is set to. Without this, the browser silently blocks fetches to the
+    // Canvas API gateway with "Refused to connect" — visible only in the
+    // console, not the network tab.
+    const canvasApiUrl = process.env.NEXT_PUBLIC_CANVAS_API_URL || '';
+    const canvasOrigin = canvasApiUrl ? new URL(canvasApiUrl).origin : '';
+
     // Content Security Policy for Next.js with external services
     const cspDirectives = [
       "default-src 'self'",
@@ -67,7 +75,7 @@ const nextConfig = {
       // Fonts
       "font-src 'self' data:",
       // API connections: Lambda, Cognito, Canvas API, Mixpanel
-      "connect-src 'self' https://*.lambda-url.us-east-1.on.aws https://*.amazoncognito.com https://*.auth.us-east-1.amazoncognito.com https://hdviynn2m4.execute-api.us-east-1.amazonaws.com https://api.mixpanel.com https://*.s3.amazonaws.com wss://*.amazoncognito.com",
+      `connect-src 'self' https://*.lambda-url.us-east-1.on.aws https://*.amazoncognito.com https://*.auth.us-east-1.amazoncognito.com https://hdviynn2m4.execute-api.us-east-1.amazonaws.com${canvasOrigin ? ' ' + canvasOrigin : ''} https://api.mixpanel.com https://*.s3.amazonaws.com wss://*.amazoncognito.com`,
       // Frame ancestors (same as X-Frame-Options: DENY)
       "frame-ancestors 'none'",
       // Base URI restriction

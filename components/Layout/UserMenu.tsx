@@ -18,7 +18,7 @@ import SharingDialog from '../Share/SharingDialog';
 import { ThemeService } from '@/utils/whiteLabel/themeService';
 import { Theme } from '@/types/settings';
 import toast from 'react-hot-toast';
-import { getMonthlyLimit } from '@/types/rateLimit';
+import { getMonthlyLimit, normalizeRateLimits } from '@/types/rateLimit';
 
 
 interface UserMenuProps {
@@ -303,7 +303,11 @@ export const UserMenu: React.FC<UserMenuProps> = ({
     const personal = defaultAccount?.rateLimit;
     if (personal && personal.rate !== null && personal.period !== 'Unlimited') return personal;
     // From the admin limits list, only use the monthly limit for MTD comparison
-    return getMonthlyLimit(adminRateLimits ?? []);
+    // adminRateLimits can be a single RateLimit object (legacy single-object
+    // format), an array, or null. normalizeRateLimits coerces all three into a
+    // RateLimit[]. The bare `?? []` fallback only handled null; passing a
+    // single object to getMonthlyLimit crashed with "e.filter is not a function".
+    return getMonthlyLimit(normalizeRateLimits(adminRateLimits));
   };
 
   const getUtilizationPercent = (): number | null => {

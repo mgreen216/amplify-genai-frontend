@@ -24,8 +24,14 @@ const CANVAS_EXPIRES_KEY = 'canvas_expires_at';
  */
 async function getCognitoAuthHeaders(): Promise<Record<string, string>> {
   const session = await getSession();
-  // @ts-ignore - accessToken added in pages/api/auth/[...nextauth].js
-  const cognitoJwt = session?.accessToken as string | undefined;
+  // The canvas-integrator API Gateway uses a Cognito User Pool authorizer
+  // (configured against us-east-1_PgwOR439P). API Gateway accepts both ID and
+  // access tokens, but ID tokens are more reliable: they always carry the
+  // `aud` claim matching the app client_id, which is what the authorizer
+  // validates. Access tokens skip that audience check and have caused
+  // intermittent 401s in our env. Fall back to accessToken if idToken absent.
+  // @ts-ignore - both fields added in pages/api/auth/[...nextauth].js session callback
+  const cognitoJwt = (session?.idToken || session?.accessToken) as string | undefined;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };

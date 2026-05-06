@@ -30,6 +30,16 @@ ARG NEXT_PUBLIC_STATUS_PAGE_URL
 # Empty/undefined disables the Canvas UI gracefully (frontend falls back to '').
 ARG NEXT_PUBLIC_CANVAS_API_URL
 
+# Core backend URLs — baked into the client bundle at build time.
+# These were on the old hfu-hfu-amplify-task as plain env vars but went
+# missing when the new prod-amplifygenai task def moved everything into
+# Secrets Manager. NEXT_PUBLIC_* vars must be present at *build* time
+# (next build inlines them as string literals); setting them at runtime
+# in the task definition has no effect.
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_CHAT_ENDPOINT
+ARG NEXT_PUBLIC_LLM_ROUTER_ENDPOINT
+
 # Set as environment variables for Next.js build
 ENV NEXT_PUBLIC_CUSTOM_LOGO=${NEXT_PUBLIC_CUSTOM_LOGO}
 ENV NEXT_PUBLIC_DEFAULT_THEME=${NEXT_PUBLIC_DEFAULT_THEME}
@@ -38,6 +48,9 @@ ENV NEXT_PUBLIC_MAINTENANCE_MODE=${NEXT_PUBLIC_MAINTENANCE_MODE}
 ENV NEXT_PUBLIC_FULL_LAUNCH=${NEXT_PUBLIC_FULL_LAUNCH}
 ENV NEXT_PUBLIC_STATUS_PAGE_URL=${NEXT_PUBLIC_STATUS_PAGE_URL}
 ENV NEXT_PUBLIC_CANVAS_API_URL=${NEXT_PUBLIC_CANVAS_API_URL}
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_CHAT_ENDPOINT=${NEXT_PUBLIC_CHAT_ENDPOINT}
+ENV NEXT_PUBLIC_LLM_ROUTER_ENDPOINT=${NEXT_PUBLIC_LLM_ROUTER_ENDPOINT}
 
 COPY . .
 

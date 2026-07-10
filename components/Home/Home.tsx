@@ -1,6 +1,20 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
+import dynamic from 'next/dynamic';
+// hasSeenWelcome is a tiny synchronous localStorage check — safe to import
+// statically. The modal itself is dynamic'd below so its JSX/icons aren't
+// in the initial bundle for repeat visitors.
+import { hasSeenWelcome } from '@/components/WelcomeModal/WelcomeModal';
+
+// Dynamic import keeps the welcome modal out of the initial JS payload —
+// most page loads are repeat visits where the modal will never render.
+// ssr:false because the modal touches localStorage on mount; SSR'ing it
+// would just render an empty shell then hydrate to the same.
+const WelcomeModal = dynamic(
+  () => import('@/components/WelcomeModal/WelcomeModal').then((m) => m.WelcomeModal),
+  { ssr: false }
+);
 import { Tab, TabSidebar } from "@/components/TabSidebar/TabSidebar";
 import { SettingsBar } from "@/components/Settings/SettingsBar";
 import { checkDataDisclosureDecision, getLatestDataDisclosure, saveDataDisclosureDecision } from "@/services/dataDisclosureService";
@@ -123,6 +137,12 @@ const Home = ({
 
     const [loadingAmplify, setLoadingAmplify] = useState<boolean>(true);
 
+    // First-run AI literacy modal. Gated by versioned localStorage key
+    // (see hasSeenWelcome / WELCOME_VERSION in WelcomeModal.tsx). Initial
+    // value is false to avoid an SSR/CSR mismatch — the real check runs
+    // after mount in the effect below.
+    const [showWelcome, setShowWelcome] = useState<boolean>(false);
+
     const [dataDisclosure, setDataDisclosure] = useState<{url: string, html: string | null}|null>(null);
     const [hasAcceptedDataDisclosure, sethasAcceptedDataDisclosure] = useState<boolean | null> (null);
 
@@ -207,6 +227,15 @@ const Home = ({
         const handleEvent = (event:any) => setSettings( getSettings(featureFlagsRef.current) );
         window.addEventListener('updateFeatureSettings', handleEvent);
         return () => window.removeEventListener('updateFeatureSettings', handleEvent)
+    }, []);
+
+    // First-run welcome modal: check localStorage once after mount, then
+    // show the modal if this user has never seen it at the current version.
+    // Deferred to client-only via useEffect so no SSR/CSR hydration mismatch.
+    useEffect(() => {
+        if (!hasSeenWelcome()) {
+            setShowWelcome(true);
+        }
     }, []);
 
 
@@ -1454,6 +1483,14 @@ const Home = ({
                         >
                             Skip to main content
                         </a>
+
+                        {/* First-run AI literacy modal. Renders only when
+                            showWelcome is true (set by the post-mount
+                            localStorage check). Modal portals to body, so
+                            placement here doesn't affect stacking. */}
+                        {showWelcome && (
+                            <WelcomeModal onClose={() => setShowWelcome(false)} />
+                        )}
                         <div className="fixed top-0 w-full sm:hidden">
                             <Navbar
                                 selectedConversation={selectedConversation}

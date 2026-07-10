@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import { signOut } from 'next-auth/react';
-import { IconLogout, IconCreditCard, IconRocket, IconShare, IconTools, IconUsers, IconShield, IconSun, IconMoon, IconX, IconCurrencyDollar, IconUser, IconSettings, IconHelp, IconLoader2 } from '@tabler/icons-react';
+import { IconLogout, IconCreditCard, IconRocket, IconShare, IconTools, IconUsers, IconShield, IconSun, IconMoon, IconX, IconCurrencyDollar, IconUser, IconSettings, IconHelp, IconLoader2, IconMail } from '@tabler/icons-react';
 import { getUserMtdCosts } from '@/services/mtdCostService';
 import { UserCostBreakdownModal } from './UserCostBreakdownModal';
 import ColorPaletteSelector, { COLOR_PALETTES } from './ColorPaletteSelector';
@@ -693,12 +693,25 @@ export const UserMenu: React.FC<UserMenuProps> = ({
                 <span className="sidebar-text font-medium text-neutral-700 dark:text-neutral-200">Settings</span>
               </button>
 
+              {/* Help & Guide — links to the public /help page with AI
+                  literacy content. Kept above Send Feedback because most
+                  questions are answered by the guide; feedback is for
+                  bugs/requests that the guide doesn't cover. */}
+              <button
+                onClick={() => { window.location.href = '/help' }}
+                className={commonClassname}
+                id="helpGuideLink"
+              >
+                <IconHelp size={16} className="icon-pop-group enhanced-icon text-blue-500" />
+                <span className="sidebar-text font-medium text-neutral-700 dark:text-neutral-200">Help &amp; Guide</span>
+              </button>
+
               <button
                 onClick={() => { window.location.href = `mailto:${supportEmail}`}}
                 className={commonClassname}
                 id="sendFeedbackInterface"
               >
-                <IconHelp size={16} className="icon-pop-group enhanced-icon text-red-500" />
+                <IconMail size={16} className="icon-pop-group enhanced-icon text-red-500" />
                 <span className="sidebar-text font-medium text-neutral-700 dark:text-neutral-200">Send Feedback</span>
               </button>
 

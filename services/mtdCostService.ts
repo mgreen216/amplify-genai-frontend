@@ -3,16 +3,10 @@ import { doRequestOp } from "./doRequestOp";
 const URL_PATH = "/billing";
 const SERVICE_NAME = "mtd";
 
-export const doMtdCostOp = async () => {
-    const op = {
-        method: 'POST',
-        path: URL_PATH,
-        op: "/mtd-cost",
-        service: SERVICE_NAME
-    };
-
-    return await doRequestOp(op);
-}
+// doMtdCostOp (op /mtd-cost) removed 2026-07-10: it was never called, and its
+// backend endpoint (POST /billing/mtd-cost) was deleted as an authenticated
+// IDOR. The live per-user cost path is getUserMtdCosts (op /list-user-mtd-costs)
+// below, whose backend route still needs to be implemented safely.
 
 export const getAllUserMtdCosts = async (limit: number = 50, lastEvaluatedKey: any = null) => {
     const op = {

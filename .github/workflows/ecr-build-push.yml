@@ -1,10 +1,40 @@
 name: Docker image build and publish
 
+# ---------------------------------------------------------------------------
+# REQUIRED GitHub Actions configuration variables (Settings > Secrets and
+# variables > Actions > Variables). These are non-secret client config values.
+# Set them at the repository level AND/OR per environment (production /
+# development). Environment-scoped vars override repository-scoped vars for
+# push/workflow_dispatch runs; pull_request runs get NO environment (see the
+# `environment:` expression below), so anything a PR build needs must also
+# exist as a repository-level variable.
+#
+# If a variable is not set, GitHub substitutes an empty string and the image
+# silently bakes an EMPTY value into the client bundle (NEXT_PUBLIC_* are
+# inlined by `next build` — they cannot be fixed at runtime).
+#
+# Client config (consumed by the Dockerfile build stage):
+#   NEXT_PUBLIC_API_URL             (required — backend API base URL)
+#   NEXT_PUBLIC_CHAT_ENDPOINT       (required — amplify-lambda-js Function URL)
+#   NEXT_PUBLIC_LLM_ROUTER_ENDPOINT (required — llm-router endpoint)
+#   NEXT_PUBLIC_CANVAS_API_URL      (Canvas LMS API base; empty disables Canvas UI)
+#   NEXT_PUBLIC_BRAND_NAME
+#   NEXT_PUBLIC_CUSTOM_LOGO
+#   NEXT_PUBLIC_DEFAULT_THEME
+#   NEXT_PUBLIC_MAINTENANCE_MODE    ("true" / "false")
+#   NEXT_PUBLIC_FULL_LAUNCH         ("true" / "false")
+#   NEXT_PUBLIC_STATUS_PAGE_URL
+#
+# Infrastructure (already used below):
+#   AWS_IAM_ROLE_ARN, AWS_REGION, AWS_ACCOUNT_ID,
+#   ECR_REPOSITORY_NAME, ECS_CLUSTER, ECS_SERVICE
+# ---------------------------------------------------------------------------
+
 on:
   push:
-    branches: [dev]
+    branches: [main, dev]
   pull_request:
-    branches: [dev]
+    branches: [main, dev]
   workflow_dispatch:
     inputs:
       enable_ecr_workflow:
@@ -70,6 +100,22 @@ jobs:
         with:
           context: .
           push: false
+          # NEXT_PUBLIC_* are inlined into the client bundle by `next build`,
+          # so they MUST be passed at build time. See the header comment for
+          # the list of Actions variables that have to be configured.
+          # NOTE: pull_request runs have no environment, so these resolve from
+          # repository-level variables only.
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_CHAT_ENDPOINT=${{ vars.NEXT_PUBLIC_CHAT_ENDPOINT }}
+            NEXT_PUBLIC_LLM_ROUTER_ENDPOINT=${{ vars.NEXT_PUBLIC_LLM_ROUTER_ENDPOINT }}
+            NEXT_PUBLIC_CANVAS_API_URL=${{ vars.NEXT_PUBLIC_CANVAS_API_URL }}
+            NEXT_PUBLIC_BRAND_NAME=${{ vars.NEXT_PUBLIC_BRAND_NAME }}
+            NEXT_PUBLIC_CUSTOM_LOGO=${{ vars.NEXT_PUBLIC_CUSTOM_LOGO }}
+            NEXT_PUBLIC_DEFAULT_THEME=${{ vars.NEXT_PUBLIC_DEFAULT_THEME }}
+            NEXT_PUBLIC_MAINTENANCE_MODE=${{ vars.NEXT_PUBLIC_MAINTENANCE_MODE }}
+            NEXT_PUBLIC_FULL_LAUNCH=${{ vars.NEXT_PUBLIC_FULL_LAUNCH }}
+            NEXT_PUBLIC_STATUS_PAGE_URL=${{ vars.NEXT_PUBLIC_STATUS_PAGE_URL }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -84,6 +130,21 @@ jobs:
           tags: |
             ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY_NAME }}:${{ github.sha }}
             ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY_NAME }}:latest
+          # NEXT_PUBLIC_* are inlined into the client bundle by `next build`,
+          # so they MUST be passed at build time — setting them on the ECS task
+          # definition has no effect. Values come from the Actions variables
+          # listed in the header comment (environment-scoped for main/dev).
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_CHAT_ENDPOINT=${{ vars.NEXT_PUBLIC_CHAT_ENDPOINT }}
+            NEXT_PUBLIC_LLM_ROUTER_ENDPOINT=${{ vars.NEXT_PUBLIC_LLM_ROUTER_ENDPOINT }}
+            NEXT_PUBLIC_CANVAS_API_URL=${{ vars.NEXT_PUBLIC_CANVAS_API_URL }}
+            NEXT_PUBLIC_BRAND_NAME=${{ vars.NEXT_PUBLIC_BRAND_NAME }}
+            NEXT_PUBLIC_CUSTOM_LOGO=${{ vars.NEXT_PUBLIC_CUSTOM_LOGO }}
+            NEXT_PUBLIC_DEFAULT_THEME=${{ vars.NEXT_PUBLIC_DEFAULT_THEME }}
+            NEXT_PUBLIC_MAINTENANCE_MODE=${{ vars.NEXT_PUBLIC_MAINTENANCE_MODE }}
+            NEXT_PUBLIC_FULL_LAUNCH=${{ vars.NEXT_PUBLIC_FULL_LAUNCH }}
+            NEXT_PUBLIC_STATUS_PAGE_URL=${{ vars.NEXT_PUBLIC_STATUS_PAGE_URL }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           

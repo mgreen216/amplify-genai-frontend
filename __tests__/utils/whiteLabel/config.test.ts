@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { fc } from '@fast-check/vitest';
+import * as fc from 'fast-check';
 import { getWhiteLabelConfig } from '@/utils/whiteLabel/config';
 
 describe('White Label Configuration - Property Tests', () => {

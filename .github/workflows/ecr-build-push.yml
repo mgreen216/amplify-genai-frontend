@@ -66,7 +66,7 @@ jobs:
       NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL || 'https://api.hfu-amplify.org' }}
       NEXT_PUBLIC_CHAT_ENDPOINT: ${{ vars.NEXT_PUBLIC_CHAT_ENDPOINT || 'https://xnqgrgqzrs4fpdvs7ly6px4zsq0uhufj.lambda-url.us-east-1.on.aws/' }}
       NEXT_PUBLIC_LLM_ROUTER_ENDPOINT: ${{ vars.NEXT_PUBLIC_LLM_ROUTER_ENDPOINT || 'https://api.hfu-amplify.org/prod/proxy/llm' }}
-      NEXT_PUBLIC_CANVAS_API_URL: ${{ vars.NEXT_PUBLIC_CANVAS_API_URL || 'https://hdviynn2m4.execute-api.us-east-1.amazonaws.com/prod' }}
+      NEXT_PUBLIC_CANVAS_API_URL: ${{ vars.NEXT_PUBLIC_CANVAS_API_URL || 'https://3bugn9gdd8.execute-api.us-east-1.amazonaws.com/prod' }}
 
     outputs:
       image_tag: ${{ steps.set-outputs.outputs.image_tag }}

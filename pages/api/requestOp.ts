@@ -3,6 +3,11 @@ import {getServerSession} from "next-auth/next";
 import {authOptions} from "@/pages/api/auth/[...nextauth]";
 import { transformPayload } from "@/utils/app/data";
 import { lzwCompress } from "@/utils/app/lzwCompression";
+import {
+    constructRequestOpUrl,
+    normalizeRequestOpMethod,
+    RequestOpPolicyError,
+} from "@/utils/server/requestOpPolicy";
 
 export const config = {
     api: {
@@ -13,9 +18,10 @@ export const config = {
 }
 
 interface reqPayload {
-    method: any,
-    headers: any,
+    method: string,
+    headers: Record<string, string>,
     body?: any,
+    redirect: 'manual',
 }
 
 // Paths that should not be compressed
@@ -25,6 +31,11 @@ const NO_COMPRESSION_PATHS = ['/billing', '/se', "/amp", '/vu-agent', "/user-dat
 const requestOp =
     async (req: NextApiRequest, res: NextApiResponse) => {
 
+        if (req.method !== 'POST') {
+            res.setHeader('Allow', 'POST');
+            return res.status(405).json({ error: 'Method not allowed' });
+        }
+
         const session = await getServerSession(req, res, authOptions);
 
         if (!session) {
@@ -32,14 +43,36 @@ const requestOp =
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
+        if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+            return res.status(400).json({ error: 'Invalid request body' });
+        }
+
         // Accessing itemData parameters from the request
         const reqData = req.body.data || {};
+        if (!reqData || typeof reqData !== 'object' || Array.isArray(reqData)) {
+            return res.status(400).json({ error: 'Invalid request data' });
+        }
         const pollRequestId = req.body.pollRequestId;  // Extract pollRequestId at top level
 
-        const method = reqData.method || null;
-        let payload = reqData.data ? transformPayload.decode(reqData.data) : null;
+        let method: string;
+        let payload: any;
+        let apiUrl: string;
+        try {
+            method = normalizeRequestOpMethod(reqData.method);
+            payload = reqData.data ? transformPayload.decode(reqData.data) : null;
+            apiUrl = constructRequestOpUrl(reqData, transformPayload.decode);
+        } catch (error) {
+            if (error instanceof RequestOpPolicyError) {
+                if (error.statusCode === 500) {
+                    console.error('Request proxy configuration is invalid:', error.message);
+                    return res.status(500).json({ error: 'Request proxy is not configured' });
+                }
+                return res.status(400).json({ error: error.message });
+            }
 
-        const apiUrl = constructUrl(reqData);
+            console.error('Error validating requestOp input:', error);
+            return res.status(400).json({ error: 'Invalid request' });
+        }
 
         // @ts-ignore
         const accessToken = (session as any).accessToken || (session as any).token?.accessToken || "";
@@ -50,6 +83,8 @@ const requestOp =
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${accessToken}` 
             },
+            // Never forward the Cognito bearer through an upstream redirect.
+            redirect: 'manual',
         }
 
         if (payload) {
@@ -89,7 +124,7 @@ const requestOp =
 
             const response = await fetch(apiUrl, reqPayload);
 
-            if (!response.ok) throw new Error(`Request to ${apiUrl} failed with status: ${response.status}`);
+            if (!response.ok) throw new Error(`Upstream request failed with status: ${response.status}`);
 
             const responseData = await response.json();
             const encodedResponse = transformPayload.encode(responseData);
@@ -102,24 +137,3 @@ const requestOp =
     };
 
 export default requestOp;
-
-
-const constructUrl = (data: any) => {  
-    let apiUrl = data.url ?? (process.env.API_BASE_URL || "");
-
-    const path: string = data.path || "";
-    const op: string = data.op || "";
-
-    apiUrl += path + op;
-
-    const queryParams: { [key: string]: string } | undefined = data.queryParams;
-  
-    if (queryParams && Object.keys(queryParams).length > 0) {
-      const queryString = Object.keys(queryParams)
-        .map(key => `${encodeURIComponent(key)}=${encodeURIComponent( transformPayload.decode(queryParams[key]) )}`)
-        .join('&');
-      apiUrl += `?${queryString}`;
-    }
-    console.log(`--- API url Request to: ${apiUrl} ---`);
-    return apiUrl;
-  };

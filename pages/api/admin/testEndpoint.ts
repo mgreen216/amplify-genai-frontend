@@ -3,6 +3,19 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
 
 const testEndpoint = async (req: NextApiRequest, res: NextApiResponse) => {
+  // This diagnostic accepts an arbitrary URL and an API key. There is no
+  // trustworthy admin claim in the NextAuth session, so fail closed in the
+  // production runtime rather than exposing a signed-in-user SSRF primitive.
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   // Authentication check - matches pattern used in requestOp.ts and other secure endpoints
   const session = await getServerSession(req, res, authOptions);
 
@@ -15,6 +28,13 @@ const testEndpoint = async (req: NextApiRequest, res: NextApiResponse) => {
   // URL validation to prevent SSRF attacks
   try {
     const parsedUrl = new URL(url);
+
+    if (parsedUrl.username || parsedUrl.password) {
+      return res.status(400).json({
+        success: false,
+        error: 'URLs containing credentials are not allowed'
+      });
+    }
 
     // Block private IP ranges and local addresses
     const hostname = parsedUrl.hostname;
@@ -66,6 +86,7 @@ const testEndpoint = async (req: NextApiRequest, res: NextApiResponse) => {
       headers,
       body: JSON.stringify(body),
       signal: controller.signal,
+      redirect: 'manual',
     });
 
     clearTimeout(timeoutId);
